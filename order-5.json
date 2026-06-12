@@ -1,0 +1,20 @@
+GET https://shop.khunhongcomputer.com/api/orders
+---
+HTTP/1.1 200 OK
+Server: nginx
+Date: Sun, 24 May 2026 08:25:57 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+access-control-allow-origin: *
+Cache-Control: no-cache, private
+rndr-id: 592b82b9-1420-48f9
+vary: Authorization
+vary: Accept-Encoding
+x-powered-by: PHP/8.2.31
+x-render-origin-server: Apache/2.4.67 (Debian)
+cf-cache-status: DYNAMIC
+CF-RAY: a00ae9a13f83e8ca-HEL
+alt-svc: h3=":443"; ma=86400
+
+{"status":"success","message":"Order details retrieved.","data":{"id":5,"invoice_no":"KH-20260522073113RHCZ","customer_name":"Sophol Ean","customer_email":"sopholhunter2026@gmail.com","customer_phone":"0910101010","shipping_name":"Ean Sophol","shipping_phone":"0910101010","shipping_address":"907, Russey Keo, Tul Sangke, Phnom Penh","subtotal":2998,"shipping_cost":2,"discount_amount":200,"total_amount":2800,"currency":"USD","status":"pending","payment_status":"unpaid","payment_method":"bank_transfer","shipping_method":"standard_delivery","order_notes":null,"items":[{"id":5,"product_id":2,"name":"Gaming Laptop ASUS ROG Strix G1","sku":"ASUS-ROG-G16-2026","quantity":2,"unit_price":1499,"subtotal":2998,"product_image_url":"https:\/\/khunhong-computer-shop-api.onrender.com\/storage\/products\/r9Vvcs1p2K06DYeUAbYdscGatjDgso4Km5FljuiI.webp","created_at":"2026-05-22 07:31:13"}],"payments":[{"id":5,"order_id":5,"method":"bank_transfer","amount":2800,"currency":"USD","status":"pending","transaction_id":null,"payment_proof_url":null,"payment_date":null,"is_refunded":false,"refunded_at":null,"refund_reason":null,"created_at":"2026-05-22 07:31:13","updated_at":"2026-05-22 07:31:13"}],"shipment":null,"cancelled_at":null,"created_at":"2026-05-22 07:31:13","updated_at":"2026-05-22 07:31:13"}}
