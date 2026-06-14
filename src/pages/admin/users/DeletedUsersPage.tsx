@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FiUser } from 'react-icons/fi'
 import { usersApi } from '@/api/users'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useInfiniteList } from '@/hooks/useInfiniteList'
 import Loading from '@/components/common/Loading'
 import Alert from '@/components/common/Alert'
 import Button from '@/components/common/Button'
@@ -17,35 +18,26 @@ type ActionType = 'restore' | 'force'
 const DeletedUsersPage: React.FC = () => {
   usePageTitle('Deleted Users')
 
-  const [users, setUsers] = useState<ManagedUser[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [query, setQuery] = useState('')
 
   const [confirmTarget, setConfirmTarget] = useState<ManagedUser | null>(null)
   const [confirmType, setConfirmType] = useState<ActionType | null>(null)
   const [processing, setProcessing] = useState(false)
 
-  const loadUsers = useCallback(() => {
-    setLoading(true)
-    usersApi
-      .listTrashed()
-      .then((res) => setUsers(res.data.data))
-      .catch((err) => setError(apiMessage(err, 'Failed to load deleted users')))
-      .finally(() => setLoading(false))
-  }, [])
-
   useEffect(() => {
-    loadUsers()
-  }, [loadUsers])
+    const timer = setTimeout(() => setQuery(searchInput), 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
-  const filtered = search.trim()
-    ? users.filter((u) => {
-        const q = search.toLowerCase()
-        return u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-      })
-    : users
+  const fetcher = useCallback(
+    (page: number) => usersApi.listTrashed({ page, per_page: 20, search: query || undefined }),
+    [query]
+  )
+
+  const { items, isLoading, isFetchingMore, error, sentinelRef, refresh } =
+    useInfiniteList<ManagedUser>({ fetcher })
 
   const openConfirm = (user: ManagedUser, type: ActionType) => {
     setConfirmTarget(user)
@@ -67,7 +59,7 @@ const DeletedUsersPage: React.FC = () => {
         await usersApi.forceDelete(confirmTarget.id)
       }
       closeConfirm()
-      loadUsers()
+      refresh()
     } catch (err) {
       setActionError(apiMessage(err, 'Action failed'))
     } finally {
@@ -88,8 +80,8 @@ const DeletedUsersPage: React.FC = () => {
         <input
           type="search"
           placeholder="Search by name or email…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
         />
       </div>
@@ -99,15 +91,15 @@ const DeletedUsersPage: React.FC = () => {
       )}
       {error && <Alert type="error" message={error} />}
 
-      {loading ? (
+      {isLoading ? (
         <Loading className="py-20" />
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="py-12 text-center text-gray-500">
-          {search ? 'No deleted users match your search.' : 'No deleted users.'}
+          {query ? 'No deleted users match your search.' : 'No deleted users.'}
         </p>
       ) : (
         <div className="space-y-2">
-          {filtered.map((user) => (
+          {items.map((user) => (
             <div
               key={user.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-4 shadow"
@@ -145,6 +137,8 @@ const DeletedUsersPage: React.FC = () => {
           ))}
         </div>
       )}
+      <div ref={sentinelRef} />
+      {isFetchingMore && <Loading className="py-6" />}
 
       <ConfirmationModal
         isOpen={confirmTarget !== null}

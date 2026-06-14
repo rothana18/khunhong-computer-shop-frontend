@@ -1,5 +1,11 @@
 import api from '@/api'
-import type { ApiResponse, ManagedUser } from '@/types'
+import type { ApiResponse, PaginatedApiResponse, ManagedUser } from '@/types'
+
+export interface UserListParams {
+  page?: number
+  per_page?: number
+  search?: string
+}
 
 export interface CreateUserData {
   first_name: string
@@ -25,14 +31,16 @@ export interface UpdateUserData {
 }
 
 export const usersApi = {
-  /** GET /users — returns all active users (non-paginated) */
-  list: () => api.get<ApiResponse<ManagedUser[]>>('/users'),
+  /** GET /users - returns active users (now paginated) */
+  list: (params?: UserListParams) =>
+    api.get<PaginatedApiResponse<ManagedUser>>('/users', { params }),
 
   /** GET /users/{id} */
   getById: (id: number) => api.get<ApiResponse<ManagedUser>>(`/users/${id}`),
 
-  /** GET /users/trashed — returns all soft-deleted users (non-paginated) */
-  listTrashed: () => api.get<ApiResponse<ManagedUser[]>>('/users/trashed'),
+  /** GET /users/trashed - returns soft-deleted users (now paginated) */
+  listTrashed: (params?: UserListParams) =>
+    api.get<PaginatedApiResponse<ManagedUser>>('/users/trashed', { params }),
 
   /**
    * POST /users — always send as FormData so an optional profile image can

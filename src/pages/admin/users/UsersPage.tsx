@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { FiUser } from 'react-icons/fi'
 import { usersApi } from '@/api/users'
 import { useAuth } from '@/hooks/useAuth'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useInfiniteList } from '@/hooks/useInfiniteList'
 import Loading from '@/components/common/Loading'
 import Alert from '@/components/common/Alert'
 import Button from '@/components/common/Button'
@@ -18,15 +19,13 @@ const UsersPage: React.FC = () => {
   const { state: authState } = useAuth()
   const location = useLocation()
 
-  const [users, setUsers] = useState<ManagedUser[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(
     () => (location.state as { success?: string } | null)?.success ?? null
   )
 
-  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [query, setQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   // Confirmation modals
@@ -40,40 +39,28 @@ const UsersPage: React.FC = () => {
     window.history.replaceState({}, '')
   }, [])
 
-  const loadUsers = useCallback(() => {
-    setLoading(true)
-    usersApi
-      .list()
-      .then((res) => setUsers(res.data.data))
-      .catch((err) => setError(apiMessage(err, 'Failed to load users')))
-      .finally(() => setLoading(false))
-  }, [])
-
   useEffect(() => {
-    loadUsers()
-  }, [loadUsers])
+    const timer = setTimeout(() => setQuery(searchInput), 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
-  // Client-side search filter
-  const filtered = useMemo(() => {
-    if (!search.trim()) return users
-    const q = search.toLowerCase()
-    return users.filter(
-      (u) =>
-        u.full_name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.phone ?? '').toLowerCase().includes(q)
-    )
-  }, [users, search])
+  const fetcher = useCallback(
+    (page: number) => usersApi.list({ page, per_page: 20, search: query || undefined }),
+    [query]
+  )
+
+  const { items, isLoading, isFetchingMore, error, sentinelRef, total, refresh } =
+    useInfiniteList<ManagedUser>({ fetcher })
 
   // Bulk select helpers
-  const allSelected = filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id))
-  const someSelected = filtered.some((u) => selectedIds.has(u.id))
+  const allSelected = items.length > 0 && items.every((u) => selectedIds.has(u.id))
+  const someSelected = items.some((u) => selectedIds.has(u.id))
 
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(filtered.map((u) => u.id)))
+      setSelectedIds(new Set(items.map((u) => u.id)))
     }
   }
 
@@ -93,7 +80,7 @@ const UsersPage: React.FC = () => {
     try {
       await usersApi.toggleStatus(toggleTarget.id)
       setToggleTarget(null)
-      loadUsers()
+      refresh()
     } catch (err) {
       setActionError(apiMessage(err, 'Failed to toggle user status'))
     } finally {
@@ -112,7 +99,7 @@ const UsersPage: React.FC = () => {
         next.delete(deactivateTarget.id)
         return next
       })
-      loadUsers()
+      refresh()
     } catch (err) {
       setActionError(apiMessage(err, 'Failed to delete user'))
     } finally {
@@ -126,7 +113,7 @@ const UsersPage: React.FC = () => {
       await usersApi.bulkDelete(Array.from(selectedIds))
       setBulkConfirmOpen(false)
       setSelectedIds(new Set())
-      loadUsers()
+      refresh()
     } catch (err) {
       setActionError(apiMessage(err, 'Failed to delete selected users'))
     } finally {
@@ -155,9 +142,9 @@ const UsersPage: React.FC = () => {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="search"
-          placeholder="Search by name, email, phone…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="min-w-48 flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
         />
         {someSelected && (
@@ -175,20 +162,17 @@ const UsersPage: React.FC = () => {
       )}
       {error && <Alert type="error" message={error} />}
 
-      {loading ? (
+      {isLoading ? (
         <Loading className="py-20" />
       ) : (
         <>
-          {users.length > 0 && (
-            <p className="mb-3 text-sm text-gray-500">
-              {filtered.length} {filtered.length === 1 ? 'user' : 'users'}
-              {search && users.length !== filtered.length && ` of ${users.length}`}
-            </p>
+          {total > 0 && (
+            <p className="mb-3 text-sm text-gray-500">{total} {total === 1 ? 'user' : 'users'}</p>
           )}
 
-          {filtered.length === 0 ? (
+          {items.length === 0 ? (
             <p className="py-12 text-center text-gray-500">
-              {search ? 'No users match your search.' : 'No active users found.'}
+              {query ? 'No users match your search.' : 'No active users found.'}
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg bg-white shadow">
@@ -212,7 +196,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filtered.map((user) => {
+                  {items.map((user) => {
                     const { label: roleLabel, className: roleColor } = formatUserRoleBadge(user.role)
                     const { label: statusLabel, className: statusColor } = formatUserStatusBadge(user.status)
                     return (
@@ -289,6 +273,8 @@ const UsersPage: React.FC = () => {
               </table>
             </div>
           )}
+          <div ref={sentinelRef} />
+          {isFetchingMore && <Loading className="py-6" />}
         </>
       )}
 

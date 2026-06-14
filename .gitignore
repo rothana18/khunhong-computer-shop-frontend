@@ -1,3 +1,12 @@
+# env
+.env
+
+# scripts
+scripts/*
+
+# deployment
+deploy.js
+
 # Logs
 logs
 *.log
