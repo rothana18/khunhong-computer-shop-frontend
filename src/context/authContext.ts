@@ -47,6 +47,7 @@ export interface AuthContextValue {
   }) => Promise<void>
   logout: () => Promise<void>
   clearError: () => void
+  updateUser: (user: User) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

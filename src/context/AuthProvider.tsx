@@ -77,9 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const clearError = useCallback(() => dispatch({ type: 'SET_ERROR', payload: null }), [])
+  const updateUser = useCallback(
+    (user: Parameters<AuthContextValue['updateUser']>[0]) =>
+      dispatch({ type: 'SET_USER', payload: user }),
+    []
+  )
 
   return (
-    <AuthContext.Provider value={{ state, login, register, logout, clearError }}>
+    <AuthContext.Provider value={{ state, login, register, logout, clearError, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

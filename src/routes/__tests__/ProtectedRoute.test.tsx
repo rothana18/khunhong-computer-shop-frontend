@@ -20,6 +20,7 @@ function setup(stateOverrides: Partial<AuthState> = {}) {
     register: vi.fn(),
     logout: vi.fn(),
     clearError: vi.fn(),
+    updateUser: vi.fn(),
   } as ReturnType<typeof useAuthModule.useAuth>)
 
   render(
@@ -85,6 +86,7 @@ describe('ProtectedRoute', () => {
       register: vi.fn(),
       logout: vi.fn(),
       clearError: vi.fn(),
+      updateUser: vi.fn(),
     })
     render(
       <MemoryRouter initialEntries={['/admin']}>

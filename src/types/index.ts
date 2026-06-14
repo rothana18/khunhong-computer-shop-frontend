@@ -7,7 +7,7 @@ export interface User {
   phone?: string
   email_verified?: boolean
   status?: string
-  profile_image?: string | null
+  profile_image_url?: string | null
   role: 'customer' | 'staff' | 'admin'
   permissions: string[]
   member_since?: string
